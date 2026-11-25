@@ -48,6 +48,24 @@ end
     end
 end
 
+@testitem "set_num_threads" begin
+    include("setup.jl")
+    std = rand(2,7)
+    STD = cumsum(std, dims=2)
+    n0 = ConvolutionOperators.get_num_threads()
+    @test n0 == Threads.nthreads()
+    y = Dict{Int,Vector{Float64}}()
+    for n in (1, 2, 0)
+        ConvolutionOperators.set_num_threads(n)
+        @test ConvolutionOperators.get_num_threads() == (n == 0 ? Threads.nthreads() : n)
+        y[n] = ConvolutionOperators.convolve!(zeros(2), cv, std, STD, 5, 2, ln)
+    end
+    #the rows are independent: same result for every number of tasks
+    @test y[1] == y[2] == y[0]
+    @test_throws ArgumentError ConvolutionOperators.set_num_threads(-1)
+    @test ConvolutionOperators.get_num_threads() == n0
+end
+
 @testitem "linearcombinations" begin
     include("setup.jl")
     lc = cv + 3*cv

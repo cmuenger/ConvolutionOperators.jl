@@ -32,7 +32,9 @@ function convolve!(y, Z::ConvOp, x, X, j, k_start=1, k_stop=size(Z,3))
     # are traversed contiguously in memory and x[n, :] is reused across rows.
     M = length(axes(y,1))
     M == 0 && return y
-    nchunks = min(M, 4 * Threads.nthreads())
+    nt = get_num_threads()
+    nt == 1 && return _convolve_rows!(y, Z, x, X, j, k_start, k_stop, axes(y,1))
+    nchunks = min(M, 4 * nt)
     @sync for mrange in Iterators.partition(axes(y,1), cld(M, nchunks))
         Threads.@spawn _convolve_rows!(y, Z, x, X, j, k_start, k_stop, mrange)
     end
